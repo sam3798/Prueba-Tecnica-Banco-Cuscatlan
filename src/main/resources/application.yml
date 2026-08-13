@@ -13,6 +13,11 @@ spring:
 server:
   port: 8080
 
+app:
+  jwt:
+    secret: "coworking-jwt-secret-key-change-me-32chars-min"
+    expiration-ms: 86400000
+
 management:
   endpoints:
     web:

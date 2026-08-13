@@ -4,6 +4,9 @@ app:
     username: sa
     password:
     driver-class-name: org.h2.Driver
+  jwt:
+    secret: "coworking-test-secret-key-must-be-long-enough-256bits"
+    expiration-ms: 3600000
 
 spring:
   jpa:

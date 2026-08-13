@@ -4,6 +4,9 @@ app:
     username: coworking
     password: coworking
     driver-class-name: org.postgresql.Driver
+  jwt:
+    secret: "coworking-dev-secret-key-must-be-long-enough-256bits"
+    expiration-ms: 86400000
 
 spring:
   jpa:
