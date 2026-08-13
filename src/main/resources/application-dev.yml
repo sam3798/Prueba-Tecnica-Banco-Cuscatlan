@@ -1,0 +1,15 @@
+app:
+  database:
+    url: jdbc:postgresql://localhost:5432/coworking
+    username: coworking
+    password: coworking
+    driver-class-name: org.postgresql.Driver
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true

@@ -1,6 +1,20 @@
 spring:
   application:
     name: coworking-reservas
+  profiles:
+    active: dev
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
 
 server:
   port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

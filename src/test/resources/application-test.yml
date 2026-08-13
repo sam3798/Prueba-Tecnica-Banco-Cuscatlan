@@ -1,0 +1,12 @@
+app:
+  database:
+    url: jdbc:h2:mem:coworking;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
