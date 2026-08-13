@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: coworking-reservas
+
+server:
+  port: 8080
