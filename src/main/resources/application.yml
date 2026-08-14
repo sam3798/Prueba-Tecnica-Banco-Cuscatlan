@@ -3,6 +3,8 @@ spring:
     name: coworking-reservas
   profiles:
     active: dev
+  cache:
+    type: caffeine
   jpa:
     open-in-view: false
     properties:
@@ -17,9 +19,37 @@ app:
   jwt:
     secret: "coworking-jwt-secret-key-change-me-32chars-min"
     expiration-ms: 86400000
+  payment:
+    force-failure: false
+    simulated-delay-ms: 0
+    timeout-ms: 2000
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      paymentService:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 8
+        minimumNumberOfCalls: 4
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        recordExceptions:
+          - java.lang.IllegalStateException
+          - org.springframework.web.client.ResourceAccessException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,circuitbreakers,circuitbreakerevents
+  endpoint:
+    health:
+      show-details: when_authorized
+  health:
+    circuitbreakers:
+      enabled: true
