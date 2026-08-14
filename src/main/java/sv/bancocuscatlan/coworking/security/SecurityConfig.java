@@ -44,7 +44,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/internal/mock/**").permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers(
+                                "/actuator/health",
+                                "/actuator/info",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/espacios/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/espacios/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/espacios/**").hasRole("ADMIN")

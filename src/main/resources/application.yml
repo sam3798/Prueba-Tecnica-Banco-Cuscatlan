@@ -53,3 +53,12 @@ management:
   health:
     circuitbreakers:
       enabled: true
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: coworking-reservas
+    description: API de reservas de espacios de coworking
+    version: 1.0.0

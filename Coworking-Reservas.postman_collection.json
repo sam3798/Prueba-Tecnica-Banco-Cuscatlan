@@ -1,0 +1,1290 @@
+{
+  "info": {
+    "_postman_id": "c0w0rk1n-g-res-ervas-2026-ready",
+    "name": "Coworking Reservas - Listo para probar",
+    "description": "IMPORTANTE:\n1) Environments: No Environment o Coworking Local.\n2) Flujo completo 01→10 valida todo el sistema.\n3) Endpoints USER: primero Register o Login (guarda userToken). Sin eso = 403.\n4) Endpoints ADMIN: primero Login admin (guarda adminToken). Sin eso = 403.\nAdmin: admin / admin123",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "userToken",
+      "value": ""
+    },
+    {
+      "key": "demoUsername",
+      "value": "usuario_demo"
+    },
+    {
+      "key": "demoPassword",
+      "value": "secret123"
+    },
+    {
+      "key": "demoEmail",
+      "value": "usuario_demo@test.com"
+    },
+    {
+      "key": "espacioId",
+      "value": ""
+    },
+    {
+      "key": "reservaId",
+      "value": ""
+    },
+    {
+      "key": "reservaInicio",
+      "value": "2026-09-15T15:00:00Z"
+    },
+    {
+      "key": "reservaFin",
+      "value": "2026-09-15T17:00:00Z"
+    }
+  ],
+  "item": [
+    {
+      "name": "Flujo completo (ejecutar en orden)",
+      "item": [
+        {
+          "name": "01 Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login admin 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "const token = json.accessToken;",
+                  "pm.expect(token).to.be.ok;",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);",
+                  "console.log('adminToken OK');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "02 Registrar Usuario USER",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now().toString().slice(-6);",
+                  "const username = 'usuario_' + suffix;",
+                  "const email = username + '@test.com';",
+                  "const password = 'secret123';",
+                  "pm.collectionVariables.set('demoUsername', username);",
+                  "pm.collectionVariables.set('demoEmail', email);",
+                  "pm.collectionVariables.set('demoPassword', password);",
+                  "pm.environment.set('demoUsername', username);",
+                  "pm.environment.set('demoEmail', email);",
+                  "pm.environment.set('demoPassword', password);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Registro 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "const token = json.accessToken;",
+                  "pm.expect(token).to.be.ok;",
+                  "pm.collectionVariables.set('userToken', token);",
+                  "pm.environment.set('userToken', token);",
+                  "console.log('userToken OK para', pm.collectionVariables.get('demoUsername'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{demoUsername}}\",\n  \"email\": \"{{demoEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "03 Crear Espacio (ADMIN)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) { throw new Error('Falta adminToken. Ejecuta primero 01 Login Admin.'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Espacio 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "const id = String(json.id);",
+                  "pm.expect(id).to.not.equal('undefined');",
+                  "pm.expect(id).to.not.equal('null');",
+                  "pm.collectionVariables.set('espacioId', id);",
+                  "pm.environment.set('espacioId', id);",
+                  "console.log('espacioId =', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sala Innovación\",\n  \"tipo\": \"MEETING_ROOM\",\n  \"capacidad\": 10,\n  \"ubicacion\": \"Piso 3 - Ala Norte\",\n  \"tarifaHora\": 35.50,\n  \"activo\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/espacios"
+          }
+        },
+        {
+          "name": "04 Listar Espacios (USER)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Listado 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/espacios"
+          }
+        },
+        {
+          "name": "05 Crear Reserva (USER)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const espacioId = pm.collectionVariables.get('espacioId') || pm.environment.get('espacioId');",
+                  "const userToken = pm.collectionVariables.get('userToken') || pm.environment.get('userToken');",
+                  "if (!userToken) { throw new Error('Falta userToken. Ejecuta 02 Registrar Usuario.'); }",
+                  "if (!espacioId || espacioId === 'null') { throw new Error('Falta espacioId. Ejecuta 03 Crear Espacio.'); }",
+                  "pm.collectionVariables.set('espacioId', String(espacioId));",
+                  "pm.environment.set('espacioId', String(espacioId));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Reserva 201 PENDING', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.estado).to.eql('PENDING');",
+                  "  pm.expect(json.id).to.exist;",
+                  "  const id = String(json.id);",
+                  "  pm.collectionVariables.set('reservaId', id);",
+                  "  pm.environment.set('reservaId', id);",
+                  "  console.log('reservaId guardado =', id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"espacioId\": {{espacioId}},\n  \"inicio\": \"{{reservaInicio}}\",\n  \"fin\": \"{{reservaFin}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/reservas"
+          }
+        },
+        {
+          "name": "06 Confirmar Reserva (pago OK)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let id = pm.collectionVariables.get('reservaId') || pm.environment.get('reservaId');",
+                  "if (!id || id === 'null' || id === 'undefined' || id === '') {",
+                  "  throw new Error('reservaId está vacío/null. Ejecuta de nuevo el paso 05 y mira que el Test diga PASS y que el Body traiga \"id\".');",
+                  "}",
+                  "id = String(id);",
+                  "pm.collectionVariables.set('reservaId', id);",
+                  "pm.environment.set('reservaId', id);",
+                  "console.log('Confirmando reservaId =', id);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Confirmada CONFIRMED', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().estado).to.eql('CONFIRMED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethod\": \"CARD\"\n}"
+            },
+            "url": "{{baseUrl}}/api/reservas/{{reservaId}}/confirm"
+          }
+        },
+        {
+          "name": "07 Reserva Solapada (debe fallar 409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Solape 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"espacioId\": {{espacioId}},\n  \"inicio\": \"2026-09-15T16:00:00Z\",\n  \"fin\": \"2026-09-15T18:00:00Z\"\n}"
+            },
+            "url": "{{baseUrl}}/api/reservas"
+          }
+        },
+        {
+          "name": "08 Reporte Ocupación",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Reporte 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reportes/ocupacion?desde=2026-09-15T00:00:00Z&hasta=2026-09-16T00:00:00Z"
+          }
+        },
+        {
+          "name": "09 Cancelar Reserva",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let id = pm.collectionVariables.get('reservaId') || pm.environment.get('reservaId');",
+                  "if (!id || id === 'null' || id === 'undefined' || id === '') {",
+                  "  throw new Error('reservaId está vacío/null. Ejecuta de nuevo el paso 05.');",
+                  "}",
+                  "id = String(id);",
+                  "pm.collectionVariables.set('reservaId', id);",
+                  "pm.environment.set('reservaId', id);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Cancelada CANCELLED', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().estado).to.eql('CANCELLED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reservas/{{reservaId}}/cancel"
+          }
+        },
+        {
+          "name": "10 Health Actuator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Health UP', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().status).to.eql('UP');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/actuator/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Endpoints USER",
+      "description": "Catálogo de endpoints disponibles para rol USER. Primero ejecuta el Flujo completo (o al menos Login/Register + crear espacio/reserva) para tener userToken, espacioId y reservaId.",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register",
+            "description": "Público. Crea rol USER.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{demoUsername}}\",\n  \"email\": \"{{demoEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now().toString().slice(-6);",
+                  "const username = 'usuario_' + suffix;",
+                  "pm.collectionVariables.set('demoUsername', username);",
+                  "pm.collectionVariables.set('demoEmail', username + '@test.com');",
+                  "pm.collectionVariables.set('demoPassword', 'secret123');",
+                  "pm.environment.set('demoUsername', username);",
+                  "pm.environment.set('demoEmail', username + '@test.com');",
+                  "pm.environment.set('demoPassword', 'secret123');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auth 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "const token = json.accessToken;",
+                  "pm.expect(token).to.be.ok;",
+                  "pm.collectionVariables.set('userToken', token);",
+                  "pm.environment.set('userToken', token);",
+                  "console.log('userToken guardado');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{demoUsername}}\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auth 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "const token = json.accessToken;",
+                  "pm.expect(token).to.be.ok;",
+                  "pm.collectionVariables.set('userToken', token);",
+                  "pm.environment.set('userToken', token);",
+                  "console.log('userToken guardado');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar espacios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/espacios",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('userToken') || pm.environment.get('userToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay userToken. Ejecuta primero Register o Login en Endpoints USER.');",
+                  "}",
+                  "pm.collectionVariables.set('userToken', token);",
+                  "pm.environment.set('userToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener espacio por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/espacios/{{espacioId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('userToken') || pm.environment.get('userToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay userToken. Ejecuta primero Register o Login en Endpoints USER.');",
+                  "}",
+                  "pm.collectionVariables.set('userToken', token);",
+                  "pm.environment.set('userToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear reserva",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reservas",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"espacioId\": {{espacioId}},\n  \"inicio\": \"2026-09-20T10:00:00Z\",\n  \"fin\": \"2026-09-20T12:00:00Z\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('userToken') || pm.environment.get('userToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay userToken. Ejecuta primero Register o Login en Endpoints USER.');",
+                  "}",
+                  "pm.collectionVariables.set('userToken', token);",
+                  "pm.environment.set('userToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar mis reservas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reservas",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('userToken') || pm.environment.get('userToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay userToken. Ejecuta primero Register o Login en Endpoints USER.');",
+                  "}",
+                  "pm.collectionVariables.set('userToken', token);",
+                  "pm.environment.set('userToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener mi reserva por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reservas/{{reservaId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('userToken') || pm.environment.get('userToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay userToken. Ejecuta primero Register o Login en Endpoints USER.');",
+                  "}",
+                  "pm.collectionVariables.set('userToken', token);",
+                  "pm.environment.set('userToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirmar mi reserva",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reservas/{{reservaId}}/confirm",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethod\": \"CARD\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('userToken') || pm.environment.get('userToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay userToken. Ejecuta primero Register o Login en Endpoints USER.');",
+                  "}",
+                  "pm.collectionVariables.set('userToken', token);",
+                  "pm.environment.set('userToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelar mi reserva",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reservas/{{reservaId}}/cancel",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('userToken') || pm.environment.get('userToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay userToken. Ejecuta primero Register o Login en Endpoints USER.');",
+                  "}",
+                  "pm.collectionVariables.set('userToken', token);",
+                  "pm.environment.set('userToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporte ocupación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reportes/ocupacion?desde=2026-09-15T00:00:00Z&hasta=2026-09-21T00:00:00Z",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('userToken') || pm.environment.get('userToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay userToken. Ejecuta primero Register o Login en Endpoints USER.');",
+                  "}",
+                  "pm.collectionVariables.set('userToken', token);",
+                  "pm.environment.set('userToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/actuator/health",
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Endpoints ADMIN",
+      "description": "Catálogo de endpoints disponibles para rol ADMIN. Primero Login Admin del flujo para tener adminToken.",
+      "item": [
+        {
+          "name": "Login admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auth 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "const token = json.accessToken;",
+                  "pm.expect(token).to.be.ok;",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);",
+                  "console.log('adminToken guardado');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear espacio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/espacios",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sala Board\",\n  \"tipo\": \"PRIVATE_OFFICE\",\n  \"capacidad\": 6,\n  \"ubicacion\": \"Piso 1\",\n  \"tarifaHora\": 50.00,\n  \"activo\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay adminToken. Ejecuta primero Login admin en Endpoints ADMIN.');",
+                  "}",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar espacios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/espacios",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay adminToken. Ejecuta primero Login admin en Endpoints ADMIN.');",
+                  "}",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener espacio por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/espacios/{{espacioId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay adminToken. Ejecuta primero Login admin en Endpoints ADMIN.');",
+                  "}",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar espacio",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/espacios/{{espacioId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sala Board Plus\",\n  \"tipo\": \"PRIVATE_OFFICE\",\n  \"capacidad\": 8,\n  \"ubicacion\": \"Piso 1\",\n  \"tarifaHora\": 55.00,\n  \"activo\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay adminToken. Ejecuta primero Login admin en Endpoints ADMIN.');",
+                  "}",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar espacio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/espacios/{{espacioId}}",
+            "description": "Cuidado: borra el espacio. Usa un ID de prueba."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay adminToken. Ejecuta primero Login admin en Endpoints ADMIN.');",
+                  "}",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar todas las reservas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reservas",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay adminToken. Ejecuta primero Login admin en Endpoints ADMIN.');",
+                  "}",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener cualquier reserva",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reservas/{{reservaId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay adminToken. Ejecuta primero Login admin en Endpoints ADMIN.');",
+                  "}",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirmar reserva de cualquier usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reservas/{{reservaId}}/confirm",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethod\": \"CARD\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay adminToken. Ejecuta primero Login admin en Endpoints ADMIN.');",
+                  "}",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelar cualquier reserva",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reservas/{{reservaId}}/cancel",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay adminToken. Ejecuta primero Login admin en Endpoints ADMIN.');",
+                  "}",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Completar reserva",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reservas/{{reservaId}}/complete",
+            "description": "Solo ADMIN. La reserva debe estar CONFIRMED."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay adminToken. Ejecuta primero Login admin en Endpoints ADMIN.');",
+                  "}",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reporte ocupación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/reportes/ocupacion?desde=2026-09-15T00:00:00Z&hasta=2026-09-21T00:00:00Z",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay adminToken. Ejecuta primero Login admin en Endpoints ADMIN.');",
+                  "}",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actuator health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/actuator/health",
+            "description": ""
+          }
+        },
+        {
+          "name": "Actuator info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/actuator/info",
+            "description": ""
+          }
+        },
+        {
+          "name": "Actuator metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/actuator/metrics",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay adminToken. Ejecuta primero Login admin en Endpoints ADMIN.');",
+                  "}",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actuator circuitbreakers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/actuator/circuitbreakers",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!token) {",
+                  "  throw new Error('No hay adminToken. Ejecuta primero Login admin en Endpoints ADMIN.');",
+                  "}",
+                  "pm.collectionVariables.set('adminToken', token);",
+                  "pm.environment.set('adminToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mock payment validate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/internal/mock/payment/validate",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservationId\": 1,\n  \"amount\": 50.00,\n  \"paymentMethod\": \"CARD\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

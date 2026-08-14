@@ -16,5 +16,21 @@ services:
       timeout: 5s
       retries: 10
 
+  app:
+    build: .
+    container_name: coworking-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/coworking
+      DB_USERNAME: coworking
+      DB_PASSWORD: coworking
+      JWT_SECRET: coworking-prod-secret-key-must-be-long-enough-256bits
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+
 volumes:
   postgres_data:

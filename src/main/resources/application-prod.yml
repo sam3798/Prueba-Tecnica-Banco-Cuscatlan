@@ -7,11 +7,14 @@ app:
   jwt:
     secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  payment:
+    force-failure: ${PAYMENT_FORCE_FAILURE:false}
+    simulated-delay-ms: ${PAYMENT_DELAY_MS:0}
 
 spring:
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: false
 
 server:
